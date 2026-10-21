@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Dados: NUNCA subir dados de operadora para o GitHub (contrato/NDA)
+dados/
+dados_reais/
+*.csv
+*.parquet
+*.xlsx
+
+# Gerados pela execução (o demo recria tudo)
+modelos/
+*.joblib
+estado.json
+resultados/decisoes*.json
+resultados/resultados.json
+
+# Outros
+*.zip
+.DS_Store

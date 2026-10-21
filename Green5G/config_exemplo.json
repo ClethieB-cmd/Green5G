@@ -1,0 +1,17 @@
+{
+  "energia": {
+    "potencia_max_w": 850,
+    "potencia_ociosa_w": 550,
+    "potencia_sleep_w": 75,
+    "tarifa_r_kwh": 0.85,
+    "fator_co2_kg_kwh": 0.0247
+  },
+  "politica": {
+    "capacidade_absorcao_macro": 45,
+    "margem_sleep": 0.85,
+    "horas_protegidas": []
+  },
+  "geral": {
+    "semanas_teste": 3
+  }
+}
