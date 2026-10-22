@@ -6,8 +6,10 @@ __pycache__/
 venv/
 
 # Dados: NUNCA subir dados de operadora para o GitHub (contrato/NDA)
+# O painel.html carrega os dados dentro dele: resultados com dados reais vão em resultados_reais/
 dados/
 dados_reais/
+resultados_reais/
 *.csv
 *.parquet
 *.xlsx

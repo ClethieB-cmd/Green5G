@@ -62,6 +62,12 @@ def cmd_avaliar(args, cfg):
                   ensure_ascii=False, indent=2)
     res["_resultados"]["Green5G IA"].to_csv(os.path.join(args.saida, "decisoes_backtest.csv"), index=False)
     criar_dashboard(res, cfg, os.path.join(args.saida, "dashboard.png"))
+    from .painel import gerar_painel
+    perfis = (df.drop_duplicates("celula_id").set_index("celula_id")["perfil"].to_dict()
+              if "perfil" in df.columns else None)
+    # A coluna 'perfil' só existe nos dados do simulador: é assim que o painel sabe que os dados são simulados.
+    gerar_painel(res, cfg, freq, os.path.join(args.saida, "painel.html"), perfis=perfis,
+                 simulado="perfil" in df.columns)
 
     print(f"\n{'Política':<26}{'Economia':>10}{'Sleep':>9}{'Violações QoS':>16}{'Usuários·h afetados':>22}")
     for nome, m in res["politicas"].items():
@@ -72,6 +78,7 @@ def cmd_avaliar(args, cfg):
     print(f"\nPrevisão: erro médio {pg['mae_p50']:.1f} usuários, cobertura P90 {pg['cobertura_p90_pct']:.1f}%, "
           f"{pg['melhoria_vs_ingenuo_pct']:.0f}% melhor que repetir a semana passada.")
     print(f"Relatório, dashboard e decisões em {args.saida}/ ({time.time() - t0:.0f} s)")
+    print(f"Painel web: abra {os.path.join(args.saida, 'painel.html')} no navegador")
 
 
 def cmd_treinar(args, cfg):

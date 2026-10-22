@@ -9,8 +9,8 @@ from green5g.config import Config
 from green5g.dados import carregar_csv, gauss_circular, simular_rede
 from green5g.energia import contabilizar
 from green5g.features import FEATURES, construir_features, max_futuro
-from green5g.politica import ATIVA, SLEEP, Situacao, decidir_green5g
 from green5g.operacao import _minutos_no_modo
+from green5g.politica import ATIVA, SLEEP, Situacao, decidir_green5g
 
 
 @pytest.fixture(scope="module")
@@ -87,6 +87,19 @@ def test_violacao_qos_contada(cfg):
     out = contabilizar(r, ce, cp, 15)
     assert out["violacao_qos"].tolist() == [False, True]
     assert out["usuarios_hora_afetados"].sum() == pytest.approx(20 * 0.25)
+
+
+def test_painel_web_gerado(tmp_path, dados):
+    from green5g.avaliacao import backtest
+    from green5g.dados import regularizar
+    from green5g.painel import gerar_painel
+    cfg = Config()
+    cfg.geral.semanas_teste = 1
+    df, freq, _ = regularizar(dados)
+    res = backtest(df, freq, cfg, verbose=False)
+    html = open(gerar_painel(res, cfg, freq, str(tmp_path / "painel.html"), simulado=True), encoding="utf-8").read()
+    assert html.startswith("<!doctype html>") and "<title>Painel Green5G</title>" in html
+    assert "__DADOS__" not in html and '"simulado":true' in html
 
 
 def test_leitor_csv_valida_colunas(tmp_path):

@@ -1,0 +1,592 @@
+<title>Painel Green5G</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: console de operação de rede. Resumo (KPIs) -> estado das células -> linha do tempo larga -> análises em duas colunas -> registro auditável. */
+:root {
+  --bg: #f3f6f4;
+  --surface: #ffffff;
+  --surface-2: #e9efeb;
+  --ink: #14211b;
+  --muted: #56635b;
+  --line: #d8e0da;
+  --accent: #0e6e55;
+  --accent-soft: #dcefe6;
+  --on-accent: #ffffff;
+  --c-dem: #2a78d6;
+  --c-band: rgba(42, 120, 214, 0.22);
+  --c-sleep: rgba(27, 175, 122, 0.17);
+  --c-v1: #eb6834;
+  --c-neutral: #a7aea9;
+  --heat-rgb: 42, 120, 214;
+  --sleep-bg: #d6f1e5;
+  --sleep-ink: #0b6b4a;
+  --warn-bg: #fff3d6;
+  --warn-ink: #7a5300;
+  --warn-line: #f0d48a;
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1412; --surface: #161d1a; --surface-2: #1f2925; --ink: #e6ede8; --muted: #9eaaa2; --line: #2a3530;
+    --accent: #3fbf93; --accent-soft: #173229; --on-accent: #08130f;
+    --c-dem: #3987e5; --c-band: rgba(57, 135, 229, 0.28); --c-sleep: rgba(25, 158, 112, 0.24); --c-v1: #d95926; --c-neutral: #5d6862;
+    --heat-rgb: 57, 135, 229; --sleep-bg: #123a2c; --sleep-ink: #7fe0bb; --warn-bg: #3a2e10; --warn-ink: #f5d27a; --warn-line: #6b5420;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1412; --surface: #161d1a; --surface-2: #1f2925; --ink: #e6ede8; --muted: #9eaaa2; --line: #2a3530;
+  --accent: #3fbf93; --accent-soft: #173229; --on-accent: #08130f;
+  --c-dem: #3987e5; --c-band: rgba(57, 135, 229, 0.28); --c-sleep: rgba(25, 158, 112, 0.24); --c-v1: #d95926; --c-neutral: #5d6862;
+  --heat-rgb: 57, 135, 229; --sleep-bg: #123a2c; --sleep-ink: #7fe0bb; --warn-bg: #3a2e10; --warn-ink: #f5d27a; --warn-line: #6b5420;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.pagina { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;
+  padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.marca { min-width: 0; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(34px, 5vw, 50px); line-height: 1; margin: 6px 0 8px; letter-spacing: -0.015em; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 19px; line-height: 1.25; margin: 0; text-wrap: balance; }
+.sub { margin: 0; color: var(--muted); max-width: 70ch; }
+.params { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-family: var(--f-mono); font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-weight: 500; }
+.aviso { display: flex; gap: 10px; align-items: baseline; padding: 10px 14px; border: 1px solid var(--warn-line); background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; font-size: 14px; }
+.aviso strong { white-space: nowrap; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi.destaque { background: var(--accent-soft); border-color: transparent; }
+.kpi .rot { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kpi .val { font-family: var(--f-display); font-weight: 700; font-size: 31px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi .val small { font-family: var(--f-body); font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.kpi .det { font-size: 13px; color: var(--muted); }
+.sec-cab { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.sec-cab p { margin: 0; color: var(--muted); font-size: 14px; max-width: 75ch; }
+.sec-cab.linha { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.celulas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.cel { font: inherit; color: inherit; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cel:hover { border-color: var(--muted); }
+.cel[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.cel:focus-visible, .seg button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cel-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cel-id { font-family: var(--f-mono); font-weight: 500; font-size: 14px; }
+.cel-perfil { font-size: 12px; color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.sleep { background: var(--sleep-bg); color: var(--sleep-ink); }
+.pill.ativa { background: var(--surface-2); color: var(--ink); }
+.pill.seguro { background: var(--warn-bg); color: var(--warn-ink); }
+.spark { width: 100%; height: 46px; display: block; }
+.spark .s { fill: var(--c-sleep); }
+.spark .l { fill: none; stroke: var(--c-dem); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.spark .c { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.cel-num { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cel-num b { color: var(--ink); font-weight: 600; }
+.painel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+label { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; background: var(--bg); color: var(--muted); border: 0; padding: 6px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.grafico { position: relative; height: 300px; }
+.grafico.alto { height: 380px; }
+.grafico .falha { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; text-align: center; padding: 16px; }
+.nota { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); }
+.duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 22px; }
+.rolagem { overflow-x: auto; }
+.mapa { display: grid; grid-template-columns: 34px repeat(24, minmax(15px, 1fr)); gap: 3px; min-width: 470px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); align-items: center; }
+.mapa .q { height: 24px; border-radius: 3px; background: rgba(var(--heat-rgb), var(--a)); }
+.mapa .h { text-align: center; }
+.escala { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--muted); font-family: var(--f-mono); }
+.escala span.barra { width: 140px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, rgba(var(--heat-rgb), 0.05), rgba(var(--heat-rgb), 1)); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); padding: 8px 10px; white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+th.num, td.num { text-align: right; }
+td.mono { font-family: var(--f-mono); font-size: 12.5px; white-space: nowrap; }
+td.motivo { min-width: 260px; }
+tr.destaque td { background: var(--accent-soft); font-weight: 600; }
+.seta { color: var(--muted); margin: 0 4px; }
+.contagem { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.rodape { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.rodape code { font-family: var(--f-mono); font-size: 12.5px; color: var(--ink); }
+@media (max-width: 600px) { .grafico.alto { height: 300px; } .kpi .val { font-size: 27px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<!--CORPO-->
+<div class="pagina">
+  <header class="topo">
+    <div class="marca">
+      <div class="eyebrow">Economia de energia em células 5G</div>
+      <h1>Green5G</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="params" id="params"></div>
+  </header>
+
+  <div class="aviso" id="aviso" hidden>
+    <strong>Dados simulados.</strong>
+    <span>Os números mostram como o método funciona, não quanto uma rede real vai economizar. Rode o mesmo comando com os dados da operadora para ter o resultado real.</span>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Resumo"></section>
+
+  <section aria-labelledby="t-celulas">
+    <div class="sec-cab">
+      <h2 id="t-celulas">Células</h2>
+      <p>Decisão para o próximo intervalo de cada célula, com as últimas 24 h de demanda. Clique numa célula para abrir a linha do tempo dela.</p>
+    </div>
+    <div class="celulas" id="celulas"></div>
+  </section>
+
+  <section class="painel" id="linha-do-tempo" aria-labelledby="tl-titulo">
+    <div class="sec-cab linha">
+      <div>
+        <h2 id="tl-titulo">Linha do tempo</h2>
+        <p>Demanda real, previsão do pico da próxima hora (faixa do P50 ao P90) e os períodos em que a célula dormiu.</p>
+      </div>
+      <div class="controles">
+        <label for="sel-cel">Célula <select id="sel-cel"></select></label>
+        <label for="sel-dia">Início <select id="sel-dia"></select></label>
+        <div class="seg" role="group" aria-label="Janela de tempo" id="seg-janela">
+          <button type="button" data-dias="1">1 dia</button>
+          <button type="button" data-dias="3">3 dias</button>
+          <button type="button" data-dias="7">7 dias</button>
+        </div>
+      </div>
+    </div>
+    <div class="grafico alto"><canvas id="g-tempo" aria-label="Gráfico da linha do tempo da célula"></canvas></div>
+  </section>
+
+  <div class="duas">
+    <section class="painel" aria-labelledby="t-consumo">
+      <div class="sec-cab">
+        <h2 id="t-consumo">Consumo por política</h2>
+        <p>Energia tirada da rede elétrica no período de teste. Todas as políticas têm o mesmo painel solar.</p>
+      </div>
+      <div class="grafico"><canvas id="g-politicas" aria-label="Gráfico de consumo por política"></canvas></div>
+    </section>
+    <section class="painel" aria-labelledby="t-risco">
+      <div class="sec-cab">
+        <h2 id="t-risco">Economia × risco</h2>
+        <p>Cada ponto azul é a IA com uma margem de sleep diferente. O melhor lugar é no alto e à esquerda: muita economia, poucos usuários afetados.</p>
+      </div>
+      <div class="grafico"><canvas id="g-risco" aria-label="Gráfico de economia por usuários afetados"></canvas></div>
+      <p class="nota" id="nota-risco"></p>
+    </section>
+  </div>
+
+  <div class="duas">
+    <section class="painel" aria-labelledby="t-mapa">
+      <div class="sec-cab">
+        <h2 id="t-mapa">Quando as células dormem</h2>
+        <p>Porcentagem do tempo em sleep, por dia da semana e hora (todas as células, política Green5G IA).</p>
+      </div>
+      <div class="rolagem"><div class="mapa" id="mapa"></div></div>
+      <div class="escala"><span>0%</span><span class="barra"></span><span>100%</span></div>
+    </section>
+    <section class="painel" aria-labelledby="t-tabela">
+      <div class="sec-cab">
+        <h2 id="t-tabela">Comparação detalhada</h2>
+        <p>Usuários·h afetados conta a demanda que ficou acima da capacidade da macro enquanto a célula dormia.</p>
+      </div>
+      <div class="rolagem"><table id="tabela-politicas"></table></div>
+    </section>
+  </div>
+
+  <section class="painel" aria-labelledby="t-log">
+    <div class="sec-cab linha">
+      <div>
+        <h2 id="t-log">Registro de decisões</h2>
+        <p>Toda mudança de estado vem com o motivo. É o que a operadora usa para auditar a IA.</p>
+      </div>
+      <div class="controles">
+        <label for="sel-log">Mostrar <select id="sel-log">
+          <option value="sel">Célula selecionada</option>
+          <option value="todas">Todas as células</option>
+        </select></label>
+      </div>
+    </div>
+    <p class="contagem" id="contagem"></p>
+    <div class="rolagem"><table id="tabela-log"></table></div>
+  </section>
+
+  <footer class="rodape" id="rodape"></footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function () {
+  "use strict";
+  const D = /*__DADOS__*/null;
+  const M = D.meta;
+  const $ = (id) => document.getElementById(id);
+  const p2 = (n) => String(n).padStart(2, "0");
+  const fmt = (v, casas = 1) => (v === null || v === undefined || Number.isNaN(v)) ? "–"
+    : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+  const cor = (nome) => getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  const fonteCorpo = () => getComputedStyle(document.body).fontFamily;
+
+  function emMs(iso) {
+    const [d, h] = iso.split("T");
+    const [a, m, dia] = d.split("-").map(Number);
+    const [hh, mm] = h.split(":").map(Number);
+    return Date.UTC(a, m - 1, dia, hh, mm);
+  }
+  function dataBR(ms) { const x = new Date(ms); return `${p2(x.getUTCDate())}/${p2(x.getUTCMonth() + 1)}/${x.getUTCFullYear()}`; }
+  function rotulo(ms) { const x = new Date(ms); return `${p2(x.getUTCDate())}/${p2(x.getUTCMonth() + 1)} ${p2(x.getUTCHours())}:${p2(x.getUTCMinutes())}`; }
+  const DIAS_SEM = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
+  function diaSemana(ms) { return DIAS_SEM[(new Date(ms).getUTCDay() + 6) % 7]; }
+
+  const POL = Object.fromEntries(D.politicas.map((p) => [p.chave, p]));
+  const passosDia = Math.round(1440 / M.freq_min);
+  const estado = { cel: D.celulas.length ? D.celulas[0].id : null, dia: 0, janela: 3, log: "sel" };
+  try {
+    const salvo = JSON.parse(localStorage.getItem("green5g-painel") || "null");
+    if (salvo && D.series[salvo.cel]) { estado.cel = salvo.cel; }
+    if (salvo && [1, 3, 7].includes(salvo.janela)) { estado.janela = salvo.janela; }
+  } catch (e) { /* sem armazenamento: usa o padrão */ }
+  function salvar() {
+    try { localStorage.setItem("green5g-painel", JSON.stringify({ cel: estado.cel, janela: estado.janela })); } catch (e) { /* ignora */ }
+  }
+
+  function modoDe(decisao, motivo) {
+    if (String(motivo || "").startsWith("modo seguro")) return { cls: "seguro", txt: "Modo seguro" };
+    return decisao === "SLEEP" ? { cls: "sleep", txt: "Sleep" } : { cls: "ativa", txt: "Ativa" };
+  }
+
+  // ---------------------------------------------------------------- cabeçalho e KPIs
+  $("sub").textContent = `${M.n_celulas} células de capacidade · medição a cada ${M.freq_min} min · teste de ${dataBR(emMs(M.ini))} a ${dataBR(emMs(M.fim))}, com o modelo retreinado a cada semana só com o passado.`;
+  $("params").innerHTML = [
+    ["Capacidade da macro", `${fmt(M.capacidade, 0)} usuários`],
+    ["Margem de sleep", fmt(M.margem_sleep, 2)],
+    ["Horizonte", `${M.horizonte_min} min`],
+    ["Tarifa", `R$ ${fmt(M.tarifa, 2)}/kWh`],
+  ].map(([k, v]) => `<span class="chip">${esc(k)} <b>${esc(v)}</b></span>`).join("");
+  $("aviso").hidden = !M.simulado;
+
+  const g = POL.green, v1 = POL.v1, ref = POL.ref, orc = POL.oraculo;
+  const kpis = [
+    { cls: "destaque", rot: "Economia de energia", val: `${fmt(g.economia_pct)}%`,
+      det: `${fmt(g.energia_kwh, 0)} kWh contra ${fmt(ref.energia_kwh, 0)} kWh com a célula sempre ativa` },
+    { rot: "Usuários afetados", val: fmt(g.usuarios_h), unid: "usuários·h",
+      det: `regras originais: ${fmt(v1.usuarios_h)} usuários·h` },
+    { rot: "Tempo em sleep", val: `${fmt(g.sleep_pct)}%`, det: `limite teórico (oráculo): ${fmt(orc.sleep_pct)}%` },
+    { rot: "Acerto do P90", val: `${fmt(D.previsao.cobertura)}%`,
+      det: `meta 90% · erro médio ${fmt(D.previsao.mae)} usuários, ${fmt(D.previsao.melhoria, 0)}% melhor que repetir a semana passada` },
+    { rot: "Projeção por célula", val: fmt(D.projecao.kwh_ano, 0), unid: "kWh/ano",
+      det: `R$ ${fmt(D.projecao.r_ano, 0)} e ${fmt(D.projecao.co2_ano)} kg de CO₂ por ano` },
+  ];
+  $("kpis").innerHTML = kpis.map((k) => `
+    <div class="kpi ${k.cls || ""}">
+      <span class="rot">${esc(k.rot)}</span>
+      <span class="val">${esc(k.val)}${k.unid ? `<small>${esc(k.unid)}</small>` : ""}</span>
+      <span class="det">${esc(k.det)}</span>
+    </div>`).join("");
+
+  // ---------------------------------------------------------------- cartões das células
+  function spark(serie) {
+    const n = serie.d.length, ini = Math.max(0, n - passosDia);
+    const d = serie.d.slice(ini), m = serie.m.slice(ini);
+    const topo = Math.max(M.capacidade * 1.2, ...d.filter((v) => v !== null)) || 1;
+    const W = 200, H = 46, dx = W / Math.max(1, d.length - 1);
+    const y = (v) => (H - 2 - (v / topo) * (H - 4)).toFixed(1);
+    let rects = "";
+    for (let i = 0; i < m.length; i++) if (m[i] === "S") rects += `<rect class="s" x="${(i * dx).toFixed(1)}" y="0" width="${(dx + 0.6).toFixed(1)}" height="${H}"/>`;
+    const pts = [];
+    let linhas = "";
+    d.forEach((v, i) => {
+      if (v === null) { if (pts.length) { linhas += `<polyline class="l" points="${pts.join(" ")}"/>`; pts.length = 0; } return; }
+      pts.push(`${(i * dx).toFixed(1)},${y(v)}`);
+    });
+    if (pts.length) linhas += `<polyline class="l" points="${pts.join(" ")}"/>`;
+    const yc = y(M.capacidade);
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${rects}<line class="c" x1="0" x2="${W}" y1="${yc}" y2="${yc}"/>${linhas}</svg>`;
+  }
+  function desenharCelulas() {
+    $("celulas").innerHTML = D.celulas.map((c) => {
+      const md = modoDe(c.ultimo.decisao, c.ultimo.motivo);
+      return `<button type="button" class="cel" data-cel="${esc(c.id)}" aria-pressed="${c.id === estado.cel}" title="${esc(c.ultimo.motivo)}">
+        <span class="cel-topo"><span><span class="cel-id">${esc(c.id)}</span>${c.perfil ? ` <span class="cel-perfil">${esc(c.perfil)}</span>` : ""}</span><span class="pill ${md.cls}">${md.txt}</span></span>
+        ${spark(D.series[c.id])}
+        <span class="cel-num"><span>Demanda <b>${fmt(c.ultimo.demanda, 0)}</b></span><span>Pico P90 <b>${fmt(c.ultimo.p90)}</b></span></span>
+        <span class="cel-num"><span>Economia <b>${fmt(c.economia_pct)}%</b></span><span>Sleep <b>${fmt(c.sleep_pct, 0)}%</b></span></span>
+      </button>`;
+    }).join("");
+  }
+  $("celulas").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".cel");
+    if (!b) return;
+    estado.cel = b.dataset.cel; estado.dia = 0; salvar();
+    atualizarSelecao();
+    $("linha-do-tempo").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  // ---------------------------------------------------------------- controles da linha do tempo
+  $("sel-cel").innerHTML = D.celulas.map((c) => `<option value="${esc(c.id)}">${esc(c.id)}</option>`).join("");
+  function preencherDias() {
+    const s = D.series[estado.cel];
+    const t0 = emMs(s.t0), nDias = Math.ceil(s.d.length / passosDia);
+    const opts = [];
+    for (let i = 0; i < nDias; i++) { const ms = t0 + i * 86400000; opts.push(`<option value="${i}">${diaSemana(ms)} ${dataBR(ms)}</option>`); }
+    $("sel-dia").innerHTML = opts.join("");
+    estado.dia = Math.min(estado.dia, nDias - 1);
+    $("sel-dia").value = String(estado.dia);
+  }
+  $("sel-cel").addEventListener("change", (e) => { estado.cel = e.target.value; salvar(); atualizarSelecao(); });
+  $("sel-dia").addEventListener("change", (e) => { estado.dia = Number(e.target.value); desenharTempo(); });
+  $("seg-janela").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-dias]");
+    if (!b) return;
+    estado.janela = Number(b.dataset.dias); salvar(); marcarJanela(); desenharTempo();
+  });
+  function marcarJanela() {
+    document.querySelectorAll("#seg-janela button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.dias) === estado.janela)));
+  }
+  $("sel-log").addEventListener("change", (e) => { estado.log = e.target.value; desenharLog(); });
+
+  function atualizarSelecao() {
+    document.querySelectorAll(".cel").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cel === estado.cel)));
+    $("sel-cel").value = estado.cel;
+    $("tl-titulo").textContent = `Linha do tempo · ${estado.cel}`;
+    preencherDias();
+    desenharTempo();
+    desenharLog();
+  }
+
+  // ---------------------------------------------------------------- gráficos
+  const temChart = typeof window.Chart !== "undefined";
+  const graficos = {};
+  function semGrafico(id) {
+    const caixa = $(id).parentElement;
+    if (!caixa.querySelector(".falha")) caixa.insertAdjacentHTML("beforeend", "<div class=\"falha\">Os gráficos precisam de internet para carregar a biblioteca Chart.js.</div>");
+  }
+  function novoGrafico(id, config) {
+    if (!temChart) { semGrafico(id); return; }
+    if (graficos[id]) graficos[id].destroy();
+    graficos[id] = new Chart($(id), config);
+  }
+  function eixo(titulo, extra) {
+    return Object.assign({
+      grid: { color: cor("--line") }, border: { color: cor("--line") },
+      ticks: { color: cor("--muted") },
+      title: titulo ? { display: true, text: titulo, color: cor("--muted") } : { display: false },
+    }, extra || {});
+  }
+  function configBase() {
+    if (temChart) {
+      Chart.defaults.font.family = fonteCorpo();
+      Chart.defaults.color = cor("--muted");
+      Chart.defaults.animation = false;
+    }
+  }
+  function tooltipBase() {
+    return { backgroundColor: cor("--surface"), titleColor: cor("--ink"), bodyColor: cor("--ink"),
+      borderColor: cor("--line"), borderWidth: 1, padding: 10, boxPadding: 4 };
+  }
+
+  function desenharTempo() {
+    const s = D.series[estado.cel];
+    if (!s) return;
+    const n = s.d.length, ini = estado.dia * passosDia, fim = Math.min(n, ini + estado.janela * passosDia);
+    const t0 = emMs(s.t0);
+    const labels = [], dem = [], p50 = [], p90 = [];
+    let topo = M.capacidade;
+    for (let i = ini; i < fim; i++) {
+      labels.push(rotulo(t0 + i * M.freq_min * 60000));
+      dem.push(s.d[i]); p50.push(s.p50[i]); p90.push(s.p90[i]);
+      topo = Math.max(topo, s.d[i] || 0, s.p90[i] || 0);
+    }
+    topo = Math.ceil((topo * 1.08) / 10) * 10;
+    const sl = [];
+    for (let i = ini; i < fim; i++) sl.push(s.m[i] === "S" ? topo : null);
+    novoGrafico("g-tempo", {
+      data: {
+        labels,
+        datasets: [
+          { type: "line", label: "P50", data: p50, borderColor: "transparent", pointRadius: 0, fill: false, order: 3 },
+          { type: "line", label: "Previsão do pico da próxima hora (P50 a P90)", data: p90, borderColor: "transparent",
+            backgroundColor: cor("--c-band"), pointRadius: 0, fill: "-1", order: 3 },
+          { type: "line", label: "Demanda real", data: dem, borderColor: cor("--c-dem"), backgroundColor: cor("--c-dem"),
+            borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0, order: 1 },
+          { type: "line", label: `Capacidade da macro (${fmt(M.capacidade, 0)})`, data: labels.map(() => M.capacidade),
+            borderColor: cor("--muted"), borderDash: [5, 4], borderWidth: 1.2, pointRadius: 0, pointHoverRadius: 0, order: 2 },
+          { type: "bar", label: "Célula em sleep", data: sl, backgroundColor: cor("--c-sleep"), barPercentage: 1,
+            categoryPercentage: 1, order: 4 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom", labels: { color: cor("--ink"), usePointStyle: true, boxWidth: 10, filter: (it) => it.text !== "P50" } },
+          tooltip: Object.assign(tooltipBase(), {
+            filter: (it) => it.datasetIndex === 2,
+            callbacks: {
+              label: (it) => ` Demanda: ${fmt(it.raw)} usuários`,
+              afterLabel: (it) => {
+                const i = ini + it.dataIndex;
+                return [` Pico previsto P50: ${fmt(s.p50[i])}`, ` Pico previsto P90: ${fmt(s.p90[i])}`,
+                  ` Célula: ${s.m[i] === "S" ? "em sleep" : "ativa"}`];
+              },
+            },
+          }),
+        },
+        scales: {
+          x: eixo(null, { offset: false, grid: { display: false }, ticks: { color: cor("--muted"), maxRotation: 0, autoSkip: true, maxTicksLimit: 8,
+            callback: (v) => { const t = labels[v] || ""; return t.endsWith(":00") ? t.replace(":00", "h") : t; } } }),
+          y: eixo("Usuários ativos", { min: 0, max: topo }),
+        },
+      },
+    });
+  }
+
+  const rotulosBarra = {
+    id: "rotulosBarra",
+    afterDatasetsDraw(chart) {
+      const ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+      ctx.save();
+      ctx.fillStyle = cor("--ink");
+      ctx.font = `500 12px ${fonteCorpo()}`;
+      ctx.textBaseline = "middle";
+      meta.data.forEach((barra, i) => {
+        const p = D.politicas[i];
+        const txt = `${fmt(p.energia_kwh, 0)} kWh` + (p.economia_pct !== null ? `  −${fmt(p.economia_pct)}%` : "  referência");
+        ctx.fillText(txt, barra.x + 8, barra.y);
+      });
+      ctx.restore();
+    },
+  };
+  function desenharPoliticas() {
+    const max = Math.max(...D.politicas.map((p) => p.energia_kwh));
+    novoGrafico("g-politicas", {
+      type: "bar",
+      data: {
+        labels: D.politicas.map((p) => p.nome),
+        datasets: [{ data: D.politicas.map((p) => p.energia_kwh),
+          backgroundColor: D.politicas.map((p) => (p.chave === "green" ? cor("--c-dem") : cor("--c-neutral"))),
+          borderRadius: 4, barPercentage: 0.62 }],
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: Object.assign(tooltipBase(), {
+          callbacks: { label: (it) => ` ${fmt(it.raw, 0)} kWh` } }) },
+        scales: {
+          x: eixo("kWh no período de teste", { min: 0, max: Math.ceil((max * 1.45) / 100) * 100 }),
+          y: eixo(null, { grid: { display: false }, ticks: { color: cor("--ink") } }),
+        },
+      },
+      plugins: [rotulosBarra],
+    });
+  }
+
+  function desenharRisco() {
+    const atual = (s) => Math.abs(s.margem - M.margem_sleep) < 1e-9;
+    novoGrafico("g-risco", {
+      type: "scatter",
+      data: {
+        datasets: [
+          { label: "Green5G IA (variando a margem de sleep)", showLine: true, borderColor: cor("--c-dem"), backgroundColor: cor("--c-dem"),
+            borderWidth: 2, data: D.sensibilidade.map((s) => ({ x: s.usuarios_h, y: s.economia_pct, margem: s.margem })),
+            pointRadius: D.sensibilidade.map((s) => (atual(s) ? 8 : 5)), pointHoverRadius: 9 },
+          { label: "Regras v1 (original)", pointStyle: "rect", pointRadius: 8, pointHoverRadius: 10,
+            backgroundColor: cor("--c-v1"), borderColor: cor("--c-v1"), data: [{ x: v1.usuarios_h, y: v1.economia_pct }] },
+          { label: "Oráculo (limite teórico)", pointStyle: "rectRot", pointRadius: 8, pointHoverRadius: 10,
+            backgroundColor: cor("--muted"), borderColor: cor("--muted"), data: [{ x: orc.usuarios_h, y: orc.economia_pct }] },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { color: cor("--ink"), usePointStyle: true, boxWidth: 10 } },
+          tooltip: Object.assign(tooltipBase(), { callbacks: {
+            label: (it) => {
+              const r = it.raw;
+              const nome = it.datasetIndex === 0 ? `Margem ${fmt(r.margem, 2)}${Math.abs(r.margem - M.margem_sleep) < 1e-9 ? " (atual)" : ""}` : it.dataset.label;
+              return ` ${nome}: economia ${fmt(r.y)}%, ${fmt(r.x)} usuários·h afetados`;
+            } } }),
+        },
+        scales: {
+          x: eixo("Usuários·h afetados", { min: 0 }),
+          y: eixo("Economia de energia (%)"),
+        },
+      },
+    });
+    $("nota-risco").textContent = `Ponto azul maior: margem atual (${fmt(M.margem_sleep, 2)}). Passe o mouse sobre os pontos para ver os valores.`;
+  }
+
+  // ---------------------------------------------------------------- mapa, tabela, registro
+  function desenharMapa() {
+    let html = "<span></span>";
+    for (let h = 0; h < 24; h++) html += `<span class="h">${h % 3 === 0 ? h : ""}</span>`;
+    D.mapa.forEach((linha, d) => {
+      html += `<span>${DIAS_SEM[d]}</span>`;
+      linha.forEach((v, h) => {
+        const a = v === null ? 0 : 0.05 + 0.95 * (v / 100);
+        html += `<span class="q" style="--a:${a.toFixed(3)}" title="${DIAS_SEM[d]} ${p2(h)}h: ${fmt(v, 0)}% do tempo em sleep"></span>`;
+      });
+    });
+    $("mapa").innerHTML = html;
+  }
+  function desenharTabela() {
+    const cab = `<thead><tr><th>Política</th><th class="num">Energia (kWh)</th><th class="num">Economia</th><th class="num">Sleep</th>
+      <th class="num">Violações de QoS</th><th class="num">Usuários·h afetados</th><th class="num">Religamentos/célula/dia</th></tr></thead>`;
+    const linhas = D.politicas.map((p) => `<tr class="${p.chave === "green" ? "destaque" : ""}">
+      <td>${esc(p.nome)}</td><td class="num">${fmt(p.energia_kwh, 0)}</td>
+      <td class="num">${p.economia_pct === null ? "referência" : fmt(p.economia_pct) + "%"}</td>
+      <td class="num">${fmt(p.sleep_pct)}%</td><td class="num">${fmt(p.violacoes_pct, 2)}% do tempo</td>
+      <td class="num">${fmt(p.usuarios_h)}</td><td class="num">${fmt(p.religamentos, 2)}</td></tr>`).join("");
+    $("tabela-politicas").innerHTML = cab + `<tbody>${linhas}</tbody>`;
+  }
+  function desenharLog() {
+    const todas = estado.log === "todas";
+    const lista = todas ? D.decisoes : D.decisoes.filter((d) => d.cel === estado.cel);
+    const mostrar = lista.slice(0, 200);
+    $("contagem").textContent = `${mostrar.length.toLocaleString("pt-BR")} de ${lista.length.toLocaleString("pt-BR")} mudanças${todas ? "" : ` da ${estado.cel}`}, da mais recente para a mais antiga.`;
+    const cab = `<thead><tr><th>Momento da decisão</th><th>Célula</th><th>Mudança</th><th class="num">Demanda</th><th class="num">Pico P90 previsto</th><th>Motivo</th></tr></thead>`;
+    const linhas = mostrar.map((d) => {
+      const de = modoDe(d.de, ""), para = modoDe(d.para, d.motivo);
+      return `<tr><td class="mono">${esc(rotulo(emMs(d.ts)))}</td><td class="mono">${esc(d.cel)}</td>
+        <td><span class="pill ${de.cls}">${de.txt}</span><span class="seta">→</span><span class="pill ${para.cls}">${para.txt}</span></td>
+        <td class="num">${fmt(d.dem)}</td><td class="num">${fmt(d.p90)}</td><td class="motivo">${esc(d.motivo)}</td></tr>`;
+    }).join("");
+    $("tabela-log").innerHTML = cab + `<tbody>${linhas}</tbody>`;
+  }
+
+  $("rodape").innerHTML = `
+    <span>Gerado em ${dataBR(emMs(M.gerado_em))} pelo comando <code>python -m green5g avaliar</code>. Decisão a cada ${M.freq_min} min olhando o pico previsto dos próximos ${M.horizonte_min} min: a célula dorme se o P90 ficar abaixo de ${fmt(M.margem_sleep * 100, 0)}% da capacidade da macro e religa se passar de ${fmt(M.margem_acordar * 100, 0)}%.</span>
+    <span>A potência ociosa, a capacidade de absorção da macro, o custo de religamento e a tarifa são parâmetros de exemplo em <code>green5g/config.py</code>; troque pelos valores reais antes de apresentar resultados.</span>`;
+
+  function desenharGraficos() { configBase(); desenharTempo(); desenharPoliticas(); desenharRisco(); }
+
+  desenharCelulas();
+  marcarJanela();
+  desenharMapa();
+  desenharTabela();
+  configBase();
+  atualizarSelecao();      // linha do tempo + registro da célula selecionada
+  desenharPoliticas();
+  desenharRisco();
+
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", desenharGraficos); } catch (e) { /* navegador antigo */ }
+  new MutationObserver(desenharGraficos).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
+</script>

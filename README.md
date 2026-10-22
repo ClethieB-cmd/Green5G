@@ -25,10 +25,21 @@ python -m pytest -q           # testes automáticos
 
 [Abrir o notebook no Colab](https://colab.research.google.com/github/ClethieB-cmd/Green5G/blob/main/notebooks/Green5G_Colab.ipynb) e usar **Ambiente de execução → Executar tudo**. O notebook baixa o projeto do GitHub sozinho.
 
+### Painel web
+
+[Ver o painel ao vivo](https://clethieb-cmd.github.io/Green5G/resultados/painel.html) (GitHub Pages, com dados simulados).
+
 ![Dashboard do backtest](resultados/dashboard.png)
 
 A demo gera:
 
+- `resultados/painel.html`: **painel web (front-end)**. Abra no navegador, sem servidor. Ele mostra:
+  - os indicadores principais;
+  - o estado de cada célula;
+  - a linha do tempo interativa da previsão;
+  - a curva economia × risco;
+  - o mapa de quando as células dormem;
+  - o registro de decisões com motivo.
 - `resultados/relatorio.md`: relatório completo
 - `resultados/dashboard.png`: gráficos
 - `resultados/resultados.json`: todos os números
@@ -79,8 +90,10 @@ timestamp,celula_id,demanda,solar_w
 - Se as colunas tiverem outro nome: `--col-tempo`, `--col-celula`, `--col-demanda`, `--col-solar`.
 - Lacunas de até 1 h são interpoladas. Lacunas maiores ficam vazias, e a política entra em **modo seguro** (célula ativa).
 
+> **Atenção:** o `painel.html` leva os dados dentro do arquivo. Com dados reais, use sempre `--saida resultados_reais`. Essa pasta fica fora do GitHub pelo `.gitignore`.
+
 ```bash
-python -m green5g avaliar --dados meus_dados.csv --config minha_config.json   # mínimo ~5 semanas
+python -m green5g avaliar --dados meus_dados.csv --config minha_config.json --saida resultados_reais   # mínimo ~5 semanas
 python -m green5g treinar --dados meus_dados.csv --modelo modelos/green5g.joblib
 python -m green5g decidir --dados ultimos_9_dias.csv --modelo modelos/green5g.joblib --estado estado.json
 ```
@@ -127,7 +140,8 @@ green5g/
   energia.py     energia, custo, CO2 e QoS
   avaliacao.py   backtest walk-forward, sensibilidade, relatório
   operacao.py    decisão em tempo real com estado e log de auditoria
-  dashboard.py   gráficos
+  dashboard.py   gráficos (PNG e notebook)
+  painel.py      painel web (front-end) + painel_template.html
   __main__.py    linha de comando
 notebooks/       notebook para o Google Colab
 tests/           testes automáticos
